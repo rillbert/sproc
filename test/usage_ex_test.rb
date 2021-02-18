@@ -1,5 +1,6 @@
 require 'minitest/autorun'
 require 'logger'
+require_relative '../lib/sproc/utils'
 require_relative '../lib/sproc/core'
 
 module SProc
@@ -8,6 +9,11 @@ module SProc
     def setup
       # avoid keeping data in stdout buffer before writing it out
       $stdout.sync = true
+      @count_flag = case OSInfo::host_os
+                    when OSInfo::OS::WINDOWS then '-n'
+                    when OSInfo::OS::LINUX then '-c'
+                    else raise 'Unsupported OS!'
+                    end
     end
 
     # Kick-off single, synchronous processes and wait for
@@ -19,7 +25,7 @@ module SProc
 
       # Run 'ping -c 2 127.0.0.1' synchronously as a subprocess, that is,
       # we block until it has completed.
-      sp.exec_sync('ping', ['-c', '2', '127.0.0.1'])
+      sp.exec_sync('ping', [@count_flag, '2', '127.0.0.1'])
 
       # we expect this to succeed (ie exit with '0')
       assert_equal(true, sp.exit_zero?)
@@ -47,14 +53,14 @@ module SProc
 
       # expect this to complete with exit code != 0 since host does not
       # exist
-      sp.exec_sync('ping', ['-c', '2', 'fake_host'])
+      sp.exec_sync('ping', [@count_flag, '2', 'fake_host'])
       assert_equal(ExecutionState::COMPLETED, sp.execution_state)
       assert_equal(false, sp.exit_zero?)
       assert_equal(true, sp.task_info.exception.nil?)
       assert_equal(false, sp.task_info.stderr.empty?)
 
       # expect this to never start a process since the cmd not exists
-      sp.exec_sync('pinggg', ['-c', '1', 'fake_host'])
+      sp.exec_sync('pinggg', [@count_flag, '1', 'fake_host'])
       assert_equal(ExecutionState::FAILED_TO_START, sp.execution_state)
       assert_equal(false, sp.exit_zero?)
       # A call to non-existing command will return ERRNO::ENOENT
@@ -71,7 +77,7 @@ module SProc
 
       # Run 'ping -c 2 127.0.0.1' asynchronously as a subprocess, that is,
       # we don't block while it is running.
-      sp.exec_async('ping', ['-c', '2', '127.0.0.1'])
+      sp.exec_async('ping', [@count_flag, '2', '127.0.0.1'])
 
       # ping should take at least 1 sec to complete so we
       # expect the subprocess to run when these asserts are executed
@@ -85,7 +91,6 @@ module SProc
       assert_equal(true, ti.process_status.nil?)
       # we don't know if the popen_thread has been created here yet
       assert_equal(true, ti.popen_thread.alive?) unless ti.popen_thread.nil?
-
 
       # Wait for the sub-process to complete
       sp.wait_on_completion
