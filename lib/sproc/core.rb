@@ -219,6 +219,10 @@ module SProc
     private
 
     def exec(synch, cmd, *args, **opts)
+      raise RuntimeError,"Subprocess already running!" unless @execution_thread.nil? || !@execution_thread.alive?
+
+      # kick-off a fresh task runner and execution thread
+      @runner = TaskRunner.new(@run_opts)
       @execution_thread = Thread.new do
         @runner.execute(cmd, *args, **opts)
       end

@@ -9,7 +9,7 @@ module SProc
     def setup
       # avoid keeping data in stdout buffer before writing it out
       $stdout.sync = true
-      @count_flag = case OSInfo::host_os
+      @count_flag = case OSInfo.host_os
                     when OSInfo::OS::WINDOWS then '-n'
                     when OSInfo::OS::LINUX then '-c'
                     else raise 'Unsupported OS!'
@@ -34,7 +34,7 @@ module SProc
       # we can access more info about the completed process via
       # its associated TaskInfo struct:
       ti = sp.task_info
-      assert_equal('ping -c 2 127.0.0.1', ti.cmd_str)
+      assert_equal("ping #{@count_flag} 2 127.0.0.1", ti.cmd_str)
 
       # ping should take at least 1 sec to complete
       assert(ti.wall_time > 0.5)
@@ -99,7 +99,7 @@ module SProc
       assert_equal(ExecutionState::COMPLETED, sp.execution_state)
       assert_equal(true, sp.exit_zero?)
       ti = sp.task_info
-      assert_equal('ping -c 2 127.0.0.1', ti.cmd_str)
+      assert_equal("ping #{@count_flag} 2 127.0.0.1", ti.cmd_str)
       # ping should take at least 1 sec to complete
       assert(ti.wall_time > 0.5)
       assert_equal(false, ti.stdout.empty?)
