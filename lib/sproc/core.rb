@@ -4,8 +4,17 @@ require 'shellwords'
 require 'open3'
 
 module SProc
+  # Defines the shell under which to invoke the sub-process
   module ShellType
-    SHELL_TYPES = [NATIVE = 0, BASH = 1].freeze
+    SHELL_TYPES = [
+      # Use the default shell for the platform we're on.
+      # - For Windows, it seems to be the 'cmd prompt'
+      # - For current ubuntu, it seems to be 'dash'
+      NATIVE = 0, 
+      # Will create a 'bash' instance and run the subprocess
+      # within that instance.
+      BASH = 1
+    ].freeze
   end
 
   # The possible states of this subprocess
@@ -105,7 +114,10 @@ module SProc
       return ExecutionState::COMPLETED if status.exited?
 
       # We don't currently handle a process that has been stopped...
-      # status.stopped?
+      raise NotImplementedError("Unhandled process 'stopped' status!") if status.stopped?
+
+      # We should never come here
+      raise RuntimeError("Unhandled process status: #{status.inspect}")
     end
 
     # Start the process non-blocking. Use one of the wait... methods
@@ -258,7 +270,8 @@ module SProc
                end
         SProc.logger&.debug { "Start: #{task_info[:cmd_str]}" }
         Open3.popen3(*args) do |stdin, stdout, stderr, thread|
-          threads = do_while_process_running(stdin, stdout, stderr, thread)
+          @task_info[:popen_thread] = thread
+          threads = do_while_process_running(stdin, stdout, stderr)
           @task_info[:process_status] = thread.value
           threads.each(&:join)
         end
@@ -277,8 +290,7 @@ module SProc
         [@task_info[:cmd_str], opts]
       end
 
-      def do_while_process_running(_stdin, stdout, stderr, thread)
-        @task_info[:popen_thread] = thread
+      def do_while_process_running(_stdin, stdout, stderr)
         th1 = process_output_stream(stdout,
                                     @task_info[:stdout], @opts[:stdout_callback])
         th2 = process_output_stream(stderr,
