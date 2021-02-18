@@ -186,7 +186,7 @@ module SProc
         next unless block_given?
 
         done.each do |p|
-          new_proc = Array(yield(p)).select { |r| r.is_a?(SubProcess) }
+          new_proc = Array(yield(p)).select { |r| r.is_a?(SProc) }
           running_proc += new_proc
           all_proc += new_proc
         end
@@ -256,7 +256,7 @@ module SProc
                when BASH   then get_args_bash(cmd, *args, **opts)
                else raise ArgumentError, "Unknown task type: #{@type}!!"
                end
-        SubProcess.logger&.debug { "Start: #{task_info[:cmd_str]}" }
+        SProc.logger&.debug { "Start: #{task_info[:cmd_str]}" }
         Open3.popen3(*args) do |stdin, stdout, stderr, thread|
           threads = do_while_process_running(stdin, stdout, stderr, thread)
           @task_info[:process_status] = thread.value
@@ -296,7 +296,7 @@ module SProc
               stream_cache << raw_line unless stream_cache.nil?
             end
           rescue IOError => e
-            l = SubProcess.logger
+            l = SProc.logger
             l&.warn { 'Stream closed before all output were read!' }
             l&.warn { e.message }
           end
