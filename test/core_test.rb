@@ -2,13 +2,26 @@
 
 require 'minitest/autorun'
 require 'logger'
+require_relative '../lib/sproc/utils'
 require_relative '../lib/sproc/core'
 
 module SProc
   # test the sequential process class
   class TestSequentialProcess < Minitest::Test
-    def test_start_sequential_process
+    def setup
+      # avoid keeping data in stdout buffer before writing it out
       $stdout.sync = true
+      # since not even a simple cmd like 'ping' has the same flags
+      # under windows/linux (grrr), we need to pass different flags
+      # depending on os
+      @count_flag = case OSInfo.host_os
+                    when OSInfo::OS::WINDOWS then '-n'
+                    when OSInfo::OS::LINUX then '-c'
+                    else raise 'Unsupported OS!'
+                    end
+    end
+
+    def test_start_sequential_process
       test_str = 'hejsan'
       sp = SProc.new(SProc::NATIVE)
       info = sp.exec_sync('echo', test_str).task_info
@@ -20,13 +33,12 @@ module SProc
     end
 
     def test_stdout_callback
-      $stdout.sync = true
       nof_pings = 2
       matches = 0
       SProc.new(
         SProc::NATIVE,
         ->(line) { (/.*from 127.0.0.1/ =~ line) && (matches += 1) }
-      ).exec_sync('ping', ['-c', nof_pings, '127.0.0.1'])
+      ).exec_sync('ping', [@count_flag, nof_pings, '127.0.0.1'])
 
       assert_equal(nof_pings, matches)
     end
@@ -34,21 +46,21 @@ module SProc
     def test_completion_status
       $stdout.sync = true
       # expect this to complete ok (with exit code 0)
-      sp = SProc.new(SProc::NATIVE).exec_sync('ping', ['-c', '1', '127.0.0.1'])
+      sp = SProc.new(SProc::NATIVE).exec_sync('ping', [@count_flag, '1', '127.0.0.1'])
       assert_equal(true, sp.exit_zero?)
 
       # expect this to not have completed when the assert is executed
-      sp = SProc.new(SProc::NATIVE).exec_async('ping', ['-c', '1', '127.0.0.1'])
+      sp = SProc.new(SProc::NATIVE).exec_async('ping', [@count_flag, '1', '127.0.0.1'])
       assert_equal(false, sp.exit_zero?)
       sp.wait_on_completion
 
       # expect this to complete with exit code != 0 since host does not
       # exist
-      sp = SProc.new(SProc::NATIVE).exec_sync('ping', ['-c', '1', 'fake_host'])
+      sp = SProc.new(SProc::NATIVE).exec_sync('ping', [@count_flag, '1', 'fake_host'])
       assert_equal(false, sp.exit_zero?)
 
       # expect this to never start a process since cmd not exists
-      sp = SProc.new(SProc::NATIVE).exec_sync('pinggg', ['-c', '1', 'fake_host'])
+      sp = SProc.new(SProc::NATIVE).exec_sync('pinggg', [@count_flag, '1', 'fake_host'])
       assert_equal(false, sp.exit_zero?)
       assert_equal(ExecutionState::FAILED_TO_START, sp.execution_state)
     end
@@ -75,7 +87,7 @@ module SProc
       # independent)
       p_array = (1..4).collect do
         p = SProc.new(SProc::NATIVE)
-        p.exec_async('ping', ['-c','2', '127.0.0.1'])
+        p.exec_async('ping', [@count_flag,'2', '127.0.0.1'])
       end
 
       nof_finished = 0
@@ -102,7 +114,7 @@ module SProc
       # independent)
       p_array = (1..4).collect do
         p = SProc.new(SProc::NATIVE)
-        p.exec_async('ping',['-c','2', '127.0.0.1'])
+        p.exec_async('ping',[@count_flag,'2', '127.0.0.1'])
       end
 
       messages = %w[First Second Third Fourth Fifth]

@@ -5,10 +5,13 @@ require_relative '../lib/sproc/core'
 
 module SProc
   # test the sequential process class
-  class TestSequentialProcess < Minitest::Test
+  class UsageExampleTests < Minitest::Test
     def setup
       # avoid keeping data in stdout buffer before writing it out
       $stdout.sync = true
+      # since not even a simple cmd like 'ping' has the same flags
+      # under windows/linux (grrr), we need to pass different flags
+      # depending on os
       @count_flag = case OSInfo.host_os
                     when OSInfo::OS::WINDOWS then '-n'
                     when OSInfo::OS::LINUX then '-c'
@@ -57,7 +60,6 @@ module SProc
       assert_equal(ExecutionState::COMPLETED, sp.execution_state)
       assert_equal(false, sp.exit_zero?)
       assert_equal(true, sp.task_info.exception.nil?)
-      assert_equal(false, sp.task_info.stderr.empty?)
 
       # expect this to never start a process since the cmd not exists
       sp.exec_sync('pinggg', [@count_flag, '1', 'fake_host'])
