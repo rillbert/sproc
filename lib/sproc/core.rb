@@ -71,20 +71,6 @@ module SProc
       @execution_thread = nil
     end
 
-    # @return the TaskInfo representing this SubProcess, nil if
-    #         process has not started
-    def task_info
-      @runner.task_info
-    end
-
-    # check if this process has completed with exit code 0
-    # (success) or not
-    def exit_zero?
-      return false unless execution_state == ExecutionState::COMPLETED
-
-      task_info[:process_status].exitstatus.zero?
-    end
-
     # Return the execution state of this SubProcess. Note that it is not
     # identical with the life-cycle of the underlying ProcessStatus object
     # @return current ExecutionState
@@ -132,6 +118,14 @@ module SProc
     # @return this SubProcess instance
     def exec_async(cmd, *args, **opts)
       exec(false, cmd, *args, **opts)
+    end
+
+    # check if this process has completed with exit code 0
+    # (success) or not
+    def exit_zero?
+      return false unless execution_state == ExecutionState::COMPLETED
+
+      task_info[:process_status].exitstatus.zero?
     end
 
     # Block caller until this subprocess has completed or aborted
@@ -205,6 +199,12 @@ module SProc
         sleep polling_interval / 1000
       end
       all_proc
+    end
+
+    # @return the TaskInfo representing this SubProcess, nil if
+    #         process has not started
+    def task_info
+      @runner.task_info
     end
 
     # return processes that are no longer running

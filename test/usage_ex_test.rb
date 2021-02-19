@@ -1,5 +1,6 @@
 require 'minitest/autorun'
 require 'logger'
+require 'etc'
 require_relative '../lib/sproc/utils'
 require_relative '../lib/sproc/core'
 
@@ -107,6 +108,68 @@ module SProc
       assert_equal(false, ti.stdout.empty?)
       assert_equal(true, ti.stderr.empty?)
       assert_equal(true, ti.exception.nil?)
+    end
+
+    def test_wait_on_all
+      # Kick-off two async subprocesses
+      sp1 = SProc.new(SProc::NATIVE).exec_async('ping', [@count_flag, '2', '127.0.0.1'])
+      sp2 = SProc.new(SProc::NATIVE).exec_async('ping', [@count_flag, '1', '127.0.0.1'])
+      # block until both processes are complete using default poll loop interval
+      SProc.wait_on_all([sp1, sp2])
+      # check that they are complete
+      assert(sp1.exit_zero?)
+      assert(sp2.exit_zero?)
+
+      # kick-off two new async processes
+      sp1.exec_async('ping', [@count_flag, '2', '127.0.0.1'])
+      sp2.exec_async('ping', [@count_flag, '1', '127.0.0.1'])
+      # wait until both processes are complete but exec the supplied
+      # block as soon as a process is complete.
+      count = 0
+      SProc.wait_on_all([sp1, sp2], 50) do |completed|
+        # we expect the SProc instance to be completed
+        assert(completed.exit_zero?)
+        count += 1
+      end
+      # both processes are complete before we reach this code
+      assert(2, count)
+    end
+
+    def test_wait_or_back_to_back
+      # The total number of subprocesses we will kick-off in this test
+      total_nof_processes = 15
+
+      # Kick-off one process to start with
+      p_array = [
+        SProc.new(SProc::NATIVE).exec_async('ping', [@count_flag, '2', '127.0.0.1'])
+      ]
+
+      nof_not_stared_yet = total_nof_processes - 1
+      completed = 0
+      # For each completed process, kick-of one or more until we've
+      # reached 'nof_not_stared_yet'
+      p_total = SProc.wait_or_back_to_back(p_array) do |p|
+        p_new = []
+        # create and start a random number of processes. Not more than we have
+        # CPU cores or that have not yet been started
+        nof_pings = rand(1..3)
+        [
+          Etc.nprocessors, nof_not_stared_yet
+        ].min.times do
+          p_new << SProc.new(SProc::NATIVE).exec_async('ping', [@count_flag, nof_pings, '127.0.0.1'])
+          nof_not_stared_yet -= 1
+        end
+
+        # check that the given process has completed
+        assert(p.exit_zero?)
+        completed += 1
+
+        # return the newly started processes
+        p_new
+      end
+
+      assert_equal(total_nof_processes, completed)
+      assert_equal(total_nof_processes, p_total.length)
     end
   end
 end
