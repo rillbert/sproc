@@ -15,7 +15,8 @@ module SProc
     ].freeze
   end
 
-  # The possible states of this subprocess
+  # The available execution states of a the subprocess
+  # running within an SProc instance.
   module ExecutionState
     NOT_STARTED = 0
     RUNNING = 1
@@ -73,42 +74,6 @@ module SProc
       @env = env
     end
 
-    # Return the execution state of this SubProcess. Note that it is not
-    # identical with the life-cycle of the underlying ProcessStatus object
-    #
-    # @return current ExecutionState
-    def execution_state
-      return ExecutionState::NOT_STARTED if @execution_thread.nil?
-
-      # Count this SubProcess as running as long as the thread
-      # that executes it is alive (this includes book keeping
-      # chores within this class as well)
-      return ExecutionState::RUNNING if @execution_thread.alive?
-
-      status = task_info[:process_status]
-
-      # an execution thread that has run but not generated a task_info
-      # means that we tried to start a process but failed
-      return ExecutionState::FAILED_TO_START if status.nil?
-
-      # a process can terminate for different reasons:
-      # - its done
-      # - an uncaught exception-
-      # - an uncaught signal
-
-      # this should take care of uncaught signals
-      return ExecutionState::ABORTED if status.signaled?
-
-      # If the process completed (either successfully or not)
-      return ExecutionState::COMPLETED if status.exited?
-
-      # We don't currently handle a process that has been stopped...
-      raise NotImplementedError("Unhandled process 'stopped' status!") if status.stopped?
-
-      # We should never come here
-      raise RuntimeError("Unhandled process status: #{status.inspect}")
-    end
-
     # Start the sub-process and block until it has completed.
     #
     #
@@ -145,6 +110,48 @@ module SProc
 
       @execution_thread.join
       task_info
+    end
+
+    # Return the execution state of this SubProcess. Note that it is not
+    # identical with the life-cycle of the underlying ProcessStatus object
+    #
+    # @return current ExecutionState
+    def execution_state
+      return ExecutionState::NOT_STARTED if @execution_thread.nil?
+
+      # Count this SubProcess as running as long as the thread
+      # that executes it is alive (this includes book keeping
+      # chores within this class as well)
+      return ExecutionState::RUNNING if @execution_thread.alive?
+
+      status = task_info[:process_status]
+
+      # an execution thread that has run but not generated a task_info
+      # means that we tried to start a process but failed
+      return ExecutionState::FAILED_TO_START if status.nil?
+
+      # a process can terminate for different reasons:
+      # - its done
+      # - an uncaught exception-
+      # - an uncaught signal
+
+      # this should take care of uncaught signals
+      return ExecutionState::ABORTED if status.signaled?
+
+      # If the process completed (either successfully or not)
+      return ExecutionState::COMPLETED if status.exited?
+
+      # We don't currently handle a process that has been stopped...
+      raise NotImplementedError("Unhandled process 'stopped' status!") if status.stopped?
+
+      # We should never come here
+      raise RuntimeError("Unhandled process status: #{status.inspect}")
+    end
+
+    # @return the TaskInfo representing this SubProcess, nil if
+    #         process has not started
+    def task_info
+      @runner.task_info
     end
 
     # blocks until all processes in the given array are completed/aborted.
@@ -211,12 +218,6 @@ module SProc
       all_proc
     end
 
-    # @return the TaskInfo representing this SubProcess, nil if
-    #         process has not started
-    def task_info
-      @runner.task_info
-    end
-
     # return processes that are no longer running
     def self.get_finished(running_proc)
       running_proc.select do |p|
@@ -228,6 +229,8 @@ module SProc
 
     private
 
+    # a helper method that supports both synch/async execution
+    # depending on the supplied args
     def exec(synch, env, cmd, *args, **opts)
       raise 'Subprocess already running!' unless @execution_thread.nil? || !@execution_thread.alive?
 
