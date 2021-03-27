@@ -7,10 +7,8 @@ module SProc
   # Defines the shell under which to invoke the sub-process
   module ShellType
     SHELL_TYPES = [
-      # Use the default shell for the platform we're on.
-      # - For Windows, it seems to be the 'cmd prompt'
-      # - For current ubuntu, it seems to be 'dash'
-      NATIVE = 0, 
+      # Start the process without any shell
+      NONE = 0,
       # Will create a 'bash' instance and run the subprocess
       # within that instance.
       BASH = 1
@@ -58,10 +56,13 @@ module SProc
     #                        from the process as it is running (default nil)
     # @param stderr_callback a callback that will receive all stderr output
     #                        from the process as it is running (default nil)
+    # @param env             a hash containing key/value pairs of strings that
+    #                        set the environment variable 'key' to 'value'. If value
+    #                        is nil, that env variable is unset
     #
     # example callback signature: def my_stdout_cb(line)
-    def initialize(type = ShellType::NATIVE, stdout_callback = nil,
-                   stderr_callback = nil)
+    def initialize(type = ShellType::NONE, stdout_callback: nil,
+                   stderr_callback: nil, env: {})
       @run_opts = {
         type: type,
         stdout_callback: stdout_callback,
@@ -69,10 +70,12 @@ module SProc
       }
       @runner = TaskRunner.new(@run_opts)
       @execution_thread = nil
+      @env = env
     end
 
     # Return the execution state of this SubProcess. Note that it is not
     # identical with the life-cycle of the underlying ProcessStatus object
+    #
     # @return current ExecutionState
     def execution_state
       return ExecutionState::NOT_STARTED if @execution_thread.nil?
@@ -106,18 +109,25 @@ module SProc
       raise RuntimeError("Unhandled process status: #{status.inspect}")
     end
 
-    # Start the process non-blocking. Use one of the wait... methods
-    # to later block on the process.
+    # Start the sub-process and block until it has completed.
+    #
+    #
+    # @cmd    the command to execute
+    # @args   an array with all arguments to the cmd
+    # @opts   a hash with options that influence the spawned process
+    #         the supported options are: chdir umask unsetenv_others
+    #         See Process.spawn for definitions
+    #
     # @return this SubProcess instance
     def exec_sync(cmd, *args, **opts)
-      exec(true, cmd, *args, **opts)
+      exec(true, @env, cmd, *args, **opts)
     end
 
     # Start the process non-blocking. Use one of the wait... methods
     # to later block on the process.
     # @return this SubProcess instance
     def exec_async(cmd, *args, **opts)
-      exec(false, cmd, *args, **opts)
+      exec(false, @env, cmd, *args, **opts)
     end
 
     # check if this process has completed with exit code 0
@@ -170,7 +180,7 @@ module SProc
     # # start 3 processes asyncronously
     # nof_processes = 3
     # p_array = (1..nof_processes).collect do
-    #   SubProcess.new(SubProcess::NATIVE).exec_async('ping', ['127.0.0.1'])
+    #   SubProcess.new(SubProcess::NONE).exec_async('ping', ['127.0.0.1'])
     # end
     #
     # # block until a process completes and then immediately start a new process
@@ -218,13 +228,13 @@ module SProc
 
     private
 
-    def exec(synch, cmd, *args, **opts)
-      raise RuntimeError,"Subprocess already running!" unless @execution_thread.nil? || !@execution_thread.alive?
+    def exec(synch, env, cmd, *args, **opts)
+      raise 'Subprocess already running!' unless @execution_thread.nil? || !@execution_thread.alive?
 
       # kick-off a fresh task runner and execution thread
       @runner = TaskRunner.new(@run_opts)
       @execution_thread = Thread.new do
-        @runner.execute(cmd, *args, **opts)
+        @runner.execute(env, cmd, *args, **opts)
       end
       @execution_thread.join if synch
       self
@@ -238,8 +248,11 @@ module SProc
 
       include ShellType
 
+      # Restrict the options to Process.spawn that we support to these
+      SUPPORTED_SPAWN_OPTS = %i[chdir umask unsetenv_others]
+
       DEFAULT_OPTS = {
-        type: NATIVE,
+        type: NONE,
         stdout_callback: nil,
         stderr_callback: nil
       }.freeze
@@ -250,12 +263,12 @@ module SProc
       end
 
       # Runs the process and blocks until it is completed or aborted.
-      # The stdout and stdin streams are continuously read in parallal with
+      # The stdout and stdin streams are continuously read in parallel with
       # the process execution.
-      def execute(cmd, *args, **opts)
+      def execute(env, cmd, *args, **opts)
         start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         begin
-          shell_out_via_popen(cmd, *args, **opts)
+          shell_out_via_popen(env, cmd, *args, **opts)
         rescue StandardError => e
           @task_info[:exception] = e
         end
@@ -266,14 +279,26 @@ module SProc
 
       private
 
-      def shell_out_via_popen(cmd, *args, **opts)
+      def valid_opts(**opts)
+        return opts if opts.nil? || opts.empty?
+
+        supported = {}
+        SUPPORTED_SPAWN_OPTS.each { |o| supported[o] = opts[o] if opts.has_key?(o) }
+        supported
+      end
+
+      def shell_out_via_popen(env, cmd, *args, **opts)
+        opts = valid_opts(**opts)
         args = case @opts[:type]
-               when NATIVE then get_args_native(cmd, *args, **opts)
-               when BASH   then get_args_bash(cmd, *args, **opts)
+               when NONE then get_args_native(cmd, *args, **opts)
+               when BASH then get_args_bash(cmd, *args, **opts)
                else raise ArgumentError, "Unknown task type: #{@type}!!"
                end
+
         SProc.logger&.debug { "Start: #{task_info[:cmd_str]}" }
-        Open3.popen3(*args) do |stdin, stdout, stderr, thread|
+        SProc.logger&.debug { "Supplying env: #{env}" } unless env.nil?
+        SProc.logger&.debug { "Spawn options: #{opts}" } unless opts.nil?
+        Open3.popen3(env, *args) do |stdin, stdout, stderr, thread|
           @task_info[:popen_thread] = thread
           threads = do_while_process_running(stdin, stdout, stderr)
           @task_info[:process_status] = thread.value
@@ -306,16 +331,14 @@ module SProc
       def process_output_stream(stream, stream_cache = nil,
                                 process_callback = nil)
         Thread.new do
-          begin
-            until (raw_line = stream.gets).nil?
-              process_callback&.call(raw_line)
-              stream_cache << raw_line unless stream_cache.nil?
-            end
-          rescue IOError => e
-            l = SProc.logger
-            l&.warn { 'Stream closed before all output were read!' }
-            l&.warn { e.message }
+          until (raw_line = stream.gets).nil?
+            process_callback&.call(raw_line)
+            stream_cache << raw_line unless stream_cache.nil?
           end
+        rescue IOError => e
+          l = SProc.logger
+          l&.warn { 'Stream closed before all output were read!' }
+          l&.warn { e.message }
         end
       end
     end
