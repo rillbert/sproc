@@ -26,7 +26,7 @@ module SProc
     def test_single_sync
       # Intantiate a 'container' for a sub-process that will invoke
       # the subprocess under the default shell for the platform
-      sp = SProc.new(SProc::NONE)
+      sp = SProc.new(type: SProc::NONE)
 
       # Run 'ping -c 2 127.0.0.1' synchronously as a subprocess, that is,
       # we block until it has completed.
@@ -77,7 +77,7 @@ module SProc
     def test_single_async
       # Intantiate a 'container' for a sub-process that will invoke
       # the subprocess under the default shell for the platform
-      sp = SProc.new(SProc::NONE)
+      sp = SProc.new(type: SProc::NONE)
 
       # Run 'ping -c 2 127.0.0.1' asynchronously as a subprocess, that is,
       # we don't block while it is running.
@@ -121,11 +121,11 @@ module SProc
 
       # Intantiate a 'container' for a sub-process that will invoke
       # the subprocess under the default shell for the platform
-      sp = SProc.new(SProc::NONE)
+      sp = SProc.new(type: SProc::NONE)
 
       # Run 'ping -c 2 127.0.0.1' asynchronously as a subprocess, that is,
       # we don't block while it is running.
-      sp.exec_sync('ping', [@count_flag, '2', '127.0.0.1'],{chdir: ".."})
+      sp.exec_sync('ping', [@count_flag, '2', '127.0.0.1'],chdir: "..")
       assert(sp.exit_zero?)
 
       # check that something has been logged...
@@ -137,8 +137,8 @@ module SProc
 
     def test_wait_on_all
       # Kick-off two async subprocesses
-      sp1 = SProc.new(SProc::NONE).exec_async('ping', [@count_flag, '2', '127.0.0.1'])
-      sp2 = SProc.new(SProc::NONE).exec_async('ping', [@count_flag, '1', '127.0.0.1'])
+      sp1 = SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, '2', '127.0.0.1'])
+      sp2 = SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, '1', '127.0.0.1'])
       # block until both processes are complete using default poll loop interval
       SProc.wait_on_all([sp1, sp2])
       # check that they are complete
@@ -166,7 +166,7 @@ module SProc
 
       # Kick-off one process to start with
       p_array = [
-        SProc.new(SProc::NONE).exec_async('ping', [@count_flag, '2', '127.0.0.1'])
+        SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, '2', '127.0.0.1'])
       ]
 
       nof_not_stared_yet = total_nof_processes - 1
@@ -181,7 +181,7 @@ module SProc
         [
           Etc.nprocessors, nof_not_stared_yet
         ].min.times do
-          p_new << SProc.new(SProc::NONE).exec_async('ping', [@count_flag, nof_pings, '127.0.0.1'])
+          p_new << SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, nof_pings, '127.0.0.1'])
           nof_not_stared_yet -= 1
         end
 

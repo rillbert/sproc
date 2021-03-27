@@ -61,7 +61,7 @@ module SProc
     #                        is nil, that env variable is unset
     #
     # example callback signature: def my_stdout_cb(line)
-    def initialize(type = ShellType::NONE, stdout_callback: nil,
+    def initialize(type: ShellType::NONE, stdout_callback: nil,
                    stderr_callback: nil, env: {})
       @run_opts = {
         type: type,
