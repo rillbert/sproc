@@ -2,7 +2,7 @@
 
 require 'minitest/autorun'
 require 'logger'
-require_relative '../lib/sproc/utils'
+require_relative '../lib/sproc/osinfo'
 require_relative '../lib/sproc/core'
 
 module SProc

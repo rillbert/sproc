@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require_relative '../lib/sproc/utils'
+require_relative '../lib/sproc/osinfo'
 require_relative '../lib/sproc/reporting'
 
 module SProc
