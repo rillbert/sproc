@@ -37,19 +37,19 @@ module SProc
     end
 
     def on_windows?
-      host_os == OS::WINDOWS
+      OSInfo.host_os == OS::WINDOWS
     end
 
     def on_linux?
-      os_context == OS::LINUX
+      OSInfo.os_context == OS::LINUX
     end
 
     def on_bsd?
-      os_context == OS::BSD
+      OSInfo.os_context == OS::BSD
     end
 
     def on_osx?
-      os_context == OS::OSX
+      OSInfo.os_context == OS::OSX
     end
   end
 end
