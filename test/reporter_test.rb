@@ -1,6 +1,6 @@
 require 'minitest/autorun'
 require_relative '../lib/sproc/utils'
-require_relative '../lib/sproc/reporter'
+require_relative '../lib/sproc/reporting'
 
 module SProc
   # test the sequential process class
