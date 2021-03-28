@@ -67,7 +67,7 @@ module SProc
       friendly_name = if @log_friendly_name_map&.key?(process)
                   "#{@log_friendly_name_map[process]}"
                 else
-                  'Process'
+                  process.task_info[:cmd_str][0,10] + "..."
                 end
       started_ok = true
       case process.execution_state
