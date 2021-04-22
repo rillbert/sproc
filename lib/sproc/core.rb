@@ -336,6 +336,8 @@ module SProc
         Thread.new do
           until (raw_line = stream.gets).nil?
             process_callback&.call(raw_line)
+            # log stream output directly in debug mode
+            SProc.logger&.debug { raw_line }
             stream_cache << raw_line unless stream_cache.nil?
           end
         rescue IOError => e
