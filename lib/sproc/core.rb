@@ -16,10 +16,15 @@ module SProc
   # The available execution states of a the subprocess
   # running within an SProc instance.
   module ExecutionState
+    # The process is initiated but does not yet run
     NOT_STARTED = 0
+    # The process is running
     RUNNING = 1
+    # The process has previously been running but is now aborted
     ABORTED = 2
+    # The process has previously been running but has now run to completion
     COMPLETED = 3
+    # The process failed to start and thus, have never been running
     FAILED_TO_START = 4
   end
 

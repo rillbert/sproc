@@ -4,5 +4,4 @@ require_relative "sproc/osinfo"
 
 module SProc
   class Error < StandardError; end
-  # Your code goes here...
 end
