@@ -12,5 +12,4 @@ Rake::TestTask.new(:rdoc) do |t|
   `rdoc --main README.adoc -x 'test' -x 'Gemfile*' -x 'Rakefile' -x 'bin/'`
 end
 
-
 task default: :test

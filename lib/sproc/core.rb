@@ -183,7 +183,7 @@ module SProc
     #
     # If the caller submits a block, that block is called once for each
     # completed SProc as soon as possible after the SProc has completed.
-    # 
+    #
     # Polling is used to implement this method so there is a jitter from the
     # point in time when an SProc has completed until its state is polled.
     # The caller can give the polling interval in ms as a parameter.
