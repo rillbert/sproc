@@ -2,3 +2,4 @@
 # generated gems
 *.gem
 
+Gemfile.lock
