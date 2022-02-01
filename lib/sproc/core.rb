@@ -1,7 +1,5 @@
-# frozen_string_literal: true
-
-require 'shellwords'
-require 'open3'
+require "shellwords"
+require "open3"
 
 module SProc
   # Defines the shell under which to invoke the sub-process
@@ -63,7 +61,7 @@ module SProc
     #
     # example callback signature: def my_stdout_cb(line)
     def initialize(type: ShellType::NONE, stdout_callback: nil,
-                   stderr_callback: nil, env: {})
+      stderr_callback: nil, env: {})
       @run_opts = {
         type: type,
         stdout_callback: stdout_callback,
@@ -165,9 +163,9 @@ module SProc
       until running_proc.empty?
         done = get_finished(running_proc)
         running_proc -= done
-        next unless block_given?
+        next unless block
 
-        done.each(&block) if block_given?
+        done.each(&block) if block
         sleep polling_interval / 1000
       end
     end
@@ -222,8 +220,8 @@ module SProc
     def self.get_finished(running_proc)
       running_proc.select do |p|
         [ExecutionState::COMPLETED,
-         ExecutionState::ABORTED,
-         ExecutionState::FAILED_TO_START].include?(p.execution_state)
+          ExecutionState::ABORTED,
+          ExecutionState::FAILED_TO_START].include?(p.execution_state)
       end
     end
 
@@ -232,7 +230,7 @@ module SProc
     # a helper method that supports both synch/async execution
     # depending on the supplied args
     def exec(synch, env, cmd, *args, **opts)
-      raise 'Subprocess already running!' unless @execution_thread.nil? || !@execution_thread.alive?
+      raise "Subprocess already running!" unless @execution_thread.nil? || !@execution_thread.alive?
 
       # kick-off a fresh task runner and execution thread
       @runner = TaskRunner.new(@run_opts)
@@ -261,7 +259,7 @@ module SProc
       }.freeze
 
       def initialize(opts)
-        @task_info = TaskInfo.new('', nil, 0, nil, nil, String.new, String.new)
+        @task_info = TaskInfo.new("", nil, 0, nil, nil, "", "")
         @opts = DEFAULT_OPTS.dup.merge!(opts)
       end
 
@@ -272,7 +270,7 @@ module SProc
         start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         begin
           shell_out_via_popen(env, cmd, *args, **opts)
-        rescue StandardError => e
+        rescue => e
           @task_info[:exception] = e
         end
         @task_info[:wall_time] = (Process.clock_gettime(
@@ -296,7 +294,7 @@ module SProc
                when NONE then get_args_native(cmd, *args, **opts)
                when BASH then get_args_bash(cmd, *args, **opts)
                else raise ArgumentError, "Unknown task type: #{@type}!!"
-               end
+        end
 
         SProc.logger&.debug { "Start: #{task_info[:cmd_str]}" }
         SProc.logger&.debug { "Supplying env: #{env}" } unless env.nil?
@@ -311,28 +309,28 @@ module SProc
 
       def get_args_native(cmd, *args, **opts)
         cmd_args = args.flatten.map(&:to_s)
-        @task_info[:cmd_str] = "#{cmd} #{cmd_args.join(' ')}"
+        @task_info[:cmd_str] = "#{cmd} #{cmd_args.join(" ")}"
         [cmd.to_s, *cmd_args, opts]
       end
 
       # convert arguments to a string prepended with bash -c
       def get_args_bash(cmd, *args, **opts)
-        cmd_str = ([cmd] + args).each { |a| Shellwords.escape(a) }.join(' ')
+        cmd_str = ([cmd] + args).each { |a| Shellwords.escape(a) }.join(" ")
         @task_info[:cmd_str] = "bash -c \"#{cmd_str}\""
         [@task_info[:cmd_str], opts]
       end
 
       def do_while_process_running(_stdin, stdout, stderr)
         th1 = process_output_stream(stdout,
-                                    @task_info[:stdout], @opts[:stdout_callback])
+          @task_info[:stdout], @opts[:stdout_callback])
         th2 = process_output_stream(stderr,
-                                    @task_info[:stderr], @opts[:stderr_callback])
+          @task_info[:stderr], @opts[:stderr_callback])
         [th1, th2]
       end
 
       # process an output stream within a separate thread
       def process_output_stream(stream, stream_cache = nil,
-                                process_callback = nil)
+        process_callback = nil)
         Thread.new do
           until (raw_line = stream.gets).nil?
             process_callback&.call(raw_line)
@@ -342,7 +340,7 @@ module SProc
           end
         rescue IOError => e
           l = SProc.logger
-          l&.warn { 'Stream closed before all output were read!' }
+          l&.warn { "Stream closed before all output were read!" }
           l&.warn { e.message }
         end
       end

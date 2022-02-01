@@ -1,9 +1,9 @@
-require 'minitest/autorun'
-require 'logger'
-require 'stringio'
-require 'etc'
-require_relative '../lib/sproc/osinfo'
-require_relative '../lib/sproc/core'
+require "minitest/autorun"
+require "logger"
+require "stringio"
+require "etc"
+require_relative "../lib/sproc/osinfo"
+require_relative "../lib/sproc/core"
 
 module SProc
   # test the sequential process class
@@ -15,10 +15,10 @@ module SProc
       # under windows/linux (grrr), we need to pass different flags
       # depending on os
       @count_flag = case OSInfo.host_os
-                    when OSInfo::OS::WINDOWS then '-n'
-                    when OSInfo::OS::LINUX then '-c'
-                    else raise 'Unsupported OS!'
-                    end
+                    when OSInfo::OS::WINDOWS then "-n"
+                    when OSInfo::OS::LINUX then "-c"
+                    else raise "Unsupported OS!"
+      end
     end
 
     # Kick-off single, synchronous processes and wait for
@@ -30,7 +30,7 @@ module SProc
 
       # Run 'ping -c 2 127.0.0.1' synchronously as a subprocess, that is,
       # we block until it has completed.
-      sp.exec_sync('ping', [@count_flag, '2', '127.0.0.1'])
+      sp.exec_sync("ping", [@count_flag, "2", "127.0.0.1"])
 
       # we expect this to succeed (ie exit with '0')
       assert_equal(true, sp.exit_zero?)
@@ -58,13 +58,13 @@ module SProc
 
       # expect this to complete with exit code != 0 since host does not
       # exist
-      sp.exec_sync('ping', [@count_flag, '2', 'fake_host'])
+      sp.exec_sync("ping", [@count_flag, "2", "fake_host"])
       assert_equal(ExecutionState::COMPLETED, sp.execution_state)
       assert_equal(false, sp.exit_zero?)
       assert_equal(true, sp.task_info.exception.nil?)
 
       # expect this to never start a process since the cmd not exists
-      sp.exec_sync('pinggg', [@count_flag, '1', 'fake_host'])
+      sp.exec_sync("pinggg", [@count_flag, "1", "fake_host"])
       assert_equal(ExecutionState::FAILED_TO_START, sp.execution_state)
       assert_equal(false, sp.exit_zero?)
       # A call to non-existing command will return ERRNO::ENOENT
@@ -81,7 +81,7 @@ module SProc
 
       # Run 'ping -c 2 127.0.0.1' asynchronously as a subprocess, that is,
       # we don't block while it is running.
-      sp.exec_async('ping', [@count_flag, '2', '127.0.0.1'])
+      sp.exec_async("ping", [@count_flag, "2", "127.0.0.1"])
 
       # ping should take at least 1 sec to complete so we
       # expect the subprocess to run when these asserts are executed
@@ -110,7 +110,7 @@ module SProc
       assert_equal(true, ti.stderr.empty?)
       assert_equal(true, ti.exception.nil?)
     end
-    
+
     def test_logging
       # 'Switch on' logging for SProc by setting the class member
       # to a logger object
@@ -125,7 +125,7 @@ module SProc
 
       # Run 'ping -c 2 127.0.0.1' asynchronously as a subprocess, that is,
       # we don't block while it is running.
-      sp.exec_sync('ping', [@count_flag, '2', '127.0.0.1'],chdir: "..")
+      sp.exec_sync("ping", [@count_flag, "2", "127.0.0.1"], chdir: "..")
       assert(sp.exit_zero?)
 
       # check that something has been logged...
@@ -137,8 +137,8 @@ module SProc
 
     def test_wait_on_all
       # Kick-off two async subprocesses
-      sp1 = SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, '2', '127.0.0.1'])
-      sp2 = SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, '1', '127.0.0.1'])
+      sp1 = SProc.new(type: SProc::NONE).exec_async("ping", [@count_flag, "2", "127.0.0.1"])
+      sp2 = SProc.new(type: SProc::NONE).exec_async("ping", [@count_flag, "1", "127.0.0.1"])
       # block until both processes are complete using default poll loop interval
       SProc.wait_on_all([sp1, sp2])
       # check that they are complete
@@ -146,8 +146,8 @@ module SProc
       assert(sp2.exit_zero?)
 
       # kick-off two new async processes
-      sp1.exec_async('ping', [@count_flag, '2', '127.0.0.1'])
-      sp2.exec_async('ping', [@count_flag, '1', '127.0.0.1'])
+      sp1.exec_async("ping", [@count_flag, "2", "127.0.0.1"])
+      sp2.exec_async("ping", [@count_flag, "1", "127.0.0.1"])
       # wait until both processes are complete but exec the supplied
       # block as soon as a process is complete.
       count = 0
@@ -166,7 +166,7 @@ module SProc
 
       # Kick-off one process to start with
       p_array = [
-        SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, '2', '127.0.0.1'])
+        SProc.new(type: SProc::NONE).exec_async("ping", [@count_flag, "2", "127.0.0.1"])
       ]
 
       nof_not_stared_yet = total_nof_processes - 1
@@ -181,7 +181,7 @@ module SProc
         [
           Etc.nprocessors, nof_not_stared_yet
         ].min.times do
-          p_new << SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, nof_pings, '127.0.0.1'])
+          p_new << SProc.new(type: SProc::NONE).exec_async("ping", [@count_flag, nof_pings, "127.0.0.1"])
           nof_not_stared_yet -= 1
         end
 

@@ -1,9 +1,7 @@
-# frozen_string_literal: true
-
-require 'minitest/autorun'
-require 'logger'
-require_relative '../lib/sproc/osinfo'
-require_relative '../lib/sproc/core'
+require "minitest/autorun"
+require "logger"
+require_relative "../lib/sproc/osinfo"
+require_relative "../lib/sproc/core"
 
 module SProc
   # test the sequential process class
@@ -15,16 +13,16 @@ module SProc
       # under windows/linux (grrr), we need to pass different flags
       # depending on os
       @count_flag = case OSInfo.host_os
-                    when OSInfo::OS::WINDOWS then '-n'
-                    when OSInfo::OS::LINUX then '-c'
-                    else raise 'Unsupported OS!'
-                    end
+                    when OSInfo::OS::WINDOWS then "-n"
+                    when OSInfo::OS::LINUX then "-c"
+                    else raise "Unsupported OS!"
+      end
     end
 
     def test_start_sequential_process
-      test_str = 'hejsan'
+      test_str = "hejsan"
       sp = SProc.new(type: SProc::NONE)
-      info = sp.exec_sync('echo', test_str).task_info
+      info = sp.exec_sync("echo", test_str).task_info
       assert_equal("echo #{test_str}", info[:cmd_str])
       assert_equal(true, sp.exit_zero?)
       # the 'echo' cmd adds a newline
@@ -33,16 +31,16 @@ module SProc
     end
 
     def test_set_environment_bash
-      value = 'testing'
+      value = "testing"
       env = {
-        'my_env_var' => value
+        "my_env_var" => value
       }
       test_str = '"${my_env_var}"'
 
-      # For command subtitustion, we need a to start the process 
+      # For command subtitustion, we need a to start the process
       # under a shell
       sp = SProc.new(type: SProc::BASH, env: env)
-      info = sp.exec_sync('echo', test_str).task_info
+      info = sp.exec_sync("echo", test_str).task_info
 
       assert_equal(true, sp.exit_zero?)
       # the 'echo' cmd adds a newline
@@ -56,7 +54,7 @@ module SProc
       SProc.new(
         type: SProc::NONE,
         stdout_callback: ->(line) { (/.*from 127.0.0.1/ =~ line) && (matches += 1) }
-      ).exec_sync('ping', [@count_flag, nof_pings, '127.0.0.1'])
+      ).exec_sync("ping", [@count_flag, nof_pings, "127.0.0.1"])
 
       assert_equal(nof_pings, matches)
     end
@@ -64,21 +62,21 @@ module SProc
     def test_completion_status
       $stdout.sync = true
       # expect this to complete ok (with exit code 0)
-      sp = SProc.new(type: SProc::NONE).exec_sync('ping', [@count_flag, '1', '127.0.0.1'])
+      sp = SProc.new(type: SProc::NONE).exec_sync("ping", [@count_flag, "1", "127.0.0.1"])
       assert_equal(true, sp.exit_zero?)
 
       # expect this to not have completed when the assert is executed
-      sp = SProc.new(type: SProc::NONE).exec_async('ping', [@count_flag, '1', '127.0.0.1'])
+      sp = SProc.new(type: SProc::NONE).exec_async("ping", [@count_flag, "1", "127.0.0.1"])
       assert_equal(false, sp.exit_zero?)
       sp.wait_on_completion
 
       # expect this to complete with exit code != 0 since host does not
       # exist
-      sp = SProc.new(type: SProc::NONE).exec_sync('ping', [@count_flag, '1', 'fake_host'])
+      sp = SProc.new(type: SProc::NONE).exec_sync("ping", [@count_flag, "1", "fake_host"])
       assert_equal(false, sp.exit_zero?)
 
       # expect this to never start a process since cmd not exists
-      sp = SProc.new(type: SProc::NONE).exec_sync('pinggg', [@count_flag, '1', 'fake_host'])
+      sp = SProc.new(type: SProc::NONE).exec_sync("pinggg", [@count_flag, "1", "fake_host"])
       assert_equal(false, sp.exit_zero?)
       assert_equal(ExecutionState::FAILED_TO_START, sp.execution_state)
     end
@@ -87,7 +85,7 @@ module SProc
       $stdout.sync = true
       msg_array = %w[hej hopp]
       p_array = msg_array.collect do |str|
-        SProc.new(type: SProc::NONE).exec_async('echo', str)
+        SProc.new(type: SProc::NONE).exec_async("echo", str)
       end
       SProc.wait_on_all(p_array)
       p_array.each_with_index do |p, i|
@@ -105,7 +103,7 @@ module SProc
       # independent)
       p_array = (1..4).collect do
         p = SProc.new(type: SProc::NONE)
-        p.exec_async('ping', [@count_flag,'2', '127.0.0.1'])
+        p.exec_async("ping", [@count_flag, "2", "127.0.0.1"])
       end
 
       nof_finished = 0
@@ -117,7 +115,7 @@ module SProc
         when ExecutionState::ABORTED
           err_str = ["Error: #{info[:stderr]}"]
           err_str << "Process Exception: #{info[:exception]}"
-          err_str << 'Did not expect any process to be aborted!!!'
+          err_str << "Did not expect any process to be aborted!!!"
           raise err_str.join("\n")
         end
       end
@@ -132,7 +130,7 @@ module SProc
       # independent)
       p_array = (1..4).collect do
         p = SProc.new(type: SProc::NONE)
-        p.exec_async('ping',[@count_flag,'2', '127.0.0.1'])
+        p.exec_async("ping", [@count_flag, "2", "127.0.0.1"])
       end
 
       messages = %w[First Second Third Fourth Fifth]
@@ -142,12 +140,12 @@ module SProc
       # finishes
       p_total = SProc.wait_or_back_to_back(p_array) do |p|
         nof_finished += 1
-        raise 'Aouch' if p.execution_state == ExecutionState::ABORTED
+        raise "Aouch" if p.execution_state == ExecutionState::ABORTED
 
         # create new processes as long as there are messages left
         unless messages.empty?
           np = SProc.new.exec_async(
-            'echo', messages.shift
+            "echo", messages.shift
           )
         end
         np
