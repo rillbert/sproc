@@ -2,3 +2,5 @@
 # generated gems
 *.gem
 
+Gemfile.lock
+.ruby-version
