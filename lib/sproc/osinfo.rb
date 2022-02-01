@@ -1,7 +1,7 @@
 require "rbconfig"
 
-# helper methods to find out os and execution environment
 module SProc
+  # helper methods to find out os and execution en
   module OSInfo
     # the supported exec environments
     module OS
