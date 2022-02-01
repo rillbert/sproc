@@ -2,3 +2,10 @@
 # generated gems
 *.gem
 
+# remove local config files
+Gemfile.lock
+.ruby-version
+.vscode/
+
+# remove generated docs
+doc/

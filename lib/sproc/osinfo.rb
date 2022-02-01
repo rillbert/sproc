@@ -1,7 +1,7 @@
-require 'rbconfig'
+require "rbconfig"
 
-# helper methods to find out os and execution environment
 module SProc
+  # helper methods to find out os and execution en
   module OSInfo
     # the supported exec environments
     module OS
@@ -16,7 +16,7 @@ module SProc
 
     # returns the current execution environment
     def self.os_context
-      case RbConfig::CONFIG['host_os']
+      case RbConfig::CONFIG["host_os"]
       when /mswin/ then OS::WINDOWS
       when /mingw/ then OS::MINGW
       when /cygwin/ then OS::CYGWIN
