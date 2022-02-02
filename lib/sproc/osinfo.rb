@@ -45,7 +45,7 @@ module SProc
     MINGW = :mingw
     CYGWIN = :cygwin
 
-    # determine the execution environment, intended for internal 
+    # determine the execution environment, intended for internal
     # use only
     def self.exec_env
       case RbConfig::CONFIG["host_os"]
