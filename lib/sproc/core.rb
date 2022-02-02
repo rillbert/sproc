@@ -202,14 +202,17 @@ module SProc
     #    assert(completed.exit_zero?)
     #  end
     def self.wait_on_all(running_proc, polling_interval = 100, &block)
+      ok = true
       until running_proc.empty?
         done = get_finished(running_proc)
         running_proc -= done
+        done.each { |sp| ok &&= sp.exit_zero? }
         next unless block
 
         done.each(&block) if block
         sleep polling_interval / 1000
       end
+      ok
     end
 
     # Wait for subprocesses to complete and give a block an opportunity to

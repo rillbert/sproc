@@ -90,10 +90,11 @@ module SProc
       ti = sp.task_info
       # the wall time is not filled in until completion
       assert_equal(0, ti.wall_time)
-      # we can access the underlying ruby 'ProcessStatus' object if
-      # we really need to
+      # we do not expect an underlying ruby 'ProcessStatus' object
+      # while the subprocess is running
       assert_equal(true, ti.process_status.nil?)
-      # we don't know if the popen_thread has been created here yet
+      # we don't know if the popen_thread has been created here yet but
+      # if it has, it must be alive
       assert_equal(true, ti.popen_thread.alive?) unless ti.popen_thread.nil?
 
       # Wait for the sub-process to complete

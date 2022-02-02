@@ -37,8 +37,8 @@ module SProc
       }
       test_str = '"${my_env_var}"'
 
-      # For command subtitustion, we need a to start the process
-      # under a shell
+      # For command subtitustion, we need to start the subprocess
+      # within a shell
       sp = SProc.new(type: SProc::BASH, env: env)
       info = sp.exec_sync("echo", test_str).task_info
 
@@ -69,6 +69,7 @@ module SProc
       sp = SProc.new(type: SProc::NONE).exec_async("ping", [@count_flag, "1", "127.0.0.1"])
       assert_equal(false, sp.exit_zero?)
       sp.wait_on_completion
+      assert_equal(true, sp.exit_zero?)
 
       # expect this to complete with exit code != 0 since host does not
       # exist
@@ -87,7 +88,7 @@ module SProc
       p_array = msg_array.collect do |str|
         SProc.new(type: SProc::NONE).exec_async("echo", str)
       end
-      SProc.wait_on_all(p_array)
+      assert(SProc.wait_on_all(p_array))
       p_array.each_with_index do |p, i|
         info = p.task_info
         assert_equal("echo #{msg_array[i]}", info[:cmd_str])
