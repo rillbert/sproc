@@ -8,8 +8,12 @@ Rake::TestTask.new(:test) do |t|
   t.test_files = FileList["test/**/*_test.rb"]
 end
 
-Rake::TestTask.new(:rdoc) do |t|
-  `rdoc --main README.adoc -x 'test' -x 'Gemfile*' -x 'Rakefile' -x 'bin/'`
+require "rdoc/task"
+
+RDoc::Task.new :rdoc do |rdoc|
+  rdoc.main = "README.adoc"
+  rdoc.rdoc_files.include("README.adoc", "lib/sproc/*.rb")
+  rdoc.options << "--public"
 end
 
 task default: :test

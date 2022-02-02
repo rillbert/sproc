@@ -1,5 +1,7 @@
 = SProc
 
+image::https://github.com/rillbert/sproc/actions/workflows/unit_tests.yml/badge.svg["Build Status"]
+
 Provides a higher level interface than popen3 for execution of, and waiting on, commands in subprocesses.
 
 IMPORTANT: Work-in-progress

@@ -15,8 +15,8 @@ module SProc
       # under windows/linux (grrr), we need to pass different flags
       # depending on os
       @count_flag = case OSInfo.host_os
-                    when OSInfo::OS::WINDOWS then "-n"
-                    when OSInfo::OS::LINUX then "-c"
+                    when OSInfo::WINDOWS then "-n"
+                    when OSInfo::LINUX then "-c"
                     else raise "Unsupported OS!"
       end
     end

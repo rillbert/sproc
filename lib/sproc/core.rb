@@ -294,6 +294,8 @@ module SProc
     # Helper class that runs one task using the preconditions given at
     # instantiation.
     # This class is not intended for external use
+    #
+    # :nodoc: all
     class TaskRunner
       attr_reader :task_info
 
