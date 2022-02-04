@@ -30,13 +30,14 @@ module SProc
     end
 
     def test_exit_on_signal
+      skip "Uses POSIX signals, does not work on Windows..." if OSInfo.on_windows? || OSInfo.on_mixed_env?
+
       s = SProc.new.exec_async("ruby", [@script_path, "--wait-on-signal"])
       assert(s.execution_state == ExecutionState::Running)
 
       # clobber the subprocess
       s.signal.kill
       s.wait_on_completion
-      puts s
       assert(s.execution_state == ExecutionState::Aborted)
     end
   end
