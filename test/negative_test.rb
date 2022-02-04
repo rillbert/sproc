@@ -18,7 +18,13 @@ module SProc
       assert(s.exit_zero?)
     end
 
-    def test_exception
+    def test_non_existent_cmd
+      s = SProc.new.exec_async("rubbbby")
+      assert_equal(ExecutionState::FailedToStart, s.execution_state)
+      assert_equal(Errno::ENOENT, s.task_info.exception.class)
+    end
+
+    def test_exception_in_subprocess
       s = SProc.new.exec_sync("ruby", [@script_path, "--throw-exception"])
       assert_equal(ExecutionState::Completed, s.execution_state)
     end
