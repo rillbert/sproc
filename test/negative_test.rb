@@ -36,6 +36,7 @@ module SProc
       # clobber the subprocess
       s.signal.kill
       s.wait_on_completion
+      puts s
       assert(s.execution_state == ExecutionState::Aborted)
     end
   end
