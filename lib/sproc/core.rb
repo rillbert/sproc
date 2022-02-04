@@ -90,7 +90,7 @@ module SProc
     include ExecutionState
 
     # A SProc::Signal instance that can be used to send signals to the subprocess.
-    # 
+    #
     # === Example
     #
     # # start an async subprocess running "sleep"
