@@ -79,7 +79,7 @@ module SProc
       # expect this to never start a process since cmd not exists
       sp = SProc.new(type: SProc::NONE).exec_sync("pinggg", [@count_flag, "1", "fake_host"])
       assert_equal(false, sp.exit_zero?)
-      assert_equal(ExecutionState::FAILED_TO_START, sp.execution_state)
+      assert_equal(ExecutionState::FailedToStart, sp.execution_state)
     end
 
     def test_start_two_parallel_processes
@@ -113,7 +113,7 @@ module SProc
         nof_finished += 1
         info = p.task_info
         case p.execution_state
-        when ExecutionState::ABORTED
+        when ExecutionState::Aborted
           err_str = ["Error: #{info[:stderr]}"]
           err_str << "Process Exception: #{info[:exception]}"
           err_str << "Did not expect any process to be aborted!!!"
@@ -122,7 +122,7 @@ module SProc
       end
       assert_equal(4, nof_finished)
       p_array.each do |p|
-        assert_equal(p.execution_state, ExecutionState::COMPLETED)
+        assert_equal(p.execution_state, ExecutionState::Completed)
       end
     end
 
@@ -141,7 +141,7 @@ module SProc
       # finishes
       p_total = SProc.wait_or_back_to_back(p_array) do |p|
         nof_finished += 1
-        raise "Aouch" if p.execution_state == ExecutionState::ABORTED
+        raise "Aouch" if p.execution_state == ExecutionState::Aborted
 
         # create new processes as long as there are messages left
         unless messages.empty?
@@ -154,7 +154,7 @@ module SProc
       assert_equal(9, nof_finished)
       assert_equal(9, p_total.count)
       p_total.each do |p|
-        assert_equal(p.execution_state, ExecutionState::COMPLETED)
+        assert_equal(p.execution_state, ExecutionState::Completed)
       end
     end
   end

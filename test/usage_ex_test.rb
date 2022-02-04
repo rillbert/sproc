@@ -34,7 +34,7 @@ module SProc
 
       # we expect this to succeed (ie exit with '0')
       assert_equal(true, sp.exit_zero?)
-      assert_equal(ExecutionState::COMPLETED, sp.execution_state)
+      assert_equal(ExecutionState::Completed, sp.execution_state)
 
       # we can access more info about the completed process via
       # its associated TaskInfo struct:
@@ -59,13 +59,13 @@ module SProc
       # expect this to complete with exit code != 0 since host does not
       # exist
       sp.exec_sync("ping", [@count_flag, "2", "fake_host"])
-      assert_equal(ExecutionState::COMPLETED, sp.execution_state)
+      assert_equal(ExecutionState::Completed, sp.execution_state)
       assert_equal(false, sp.exit_zero?)
       assert_equal(true, sp.task_info.exception.nil?)
 
       # expect this to never start a process since the cmd not exists
       sp.exec_sync("pinggg", [@count_flag, "1", "fake_host"])
-      assert_equal(ExecutionState::FAILED_TO_START, sp.execution_state)
+      assert_equal(ExecutionState::FailedToStart, sp.execution_state)
       assert_equal(false, sp.exit_zero?)
       # A call to non-existing command will return ERRNO::ENOENT
       assert_equal(false, sp.task_info.exception.nil?)
@@ -85,7 +85,7 @@ module SProc
 
       # ping should take at least 1 sec to complete so we
       # expect the subprocess to run when these asserts are executed
-      assert_equal(ExecutionState::RUNNING, sp.execution_state)
+      assert_equal(ExecutionState::Running, sp.execution_state)
       assert_equal(false, sp.exit_zero?)
       ti = sp.task_info
       # the wall time is not filled in until completion
@@ -101,7 +101,7 @@ module SProc
       sp.wait_on_completion
       # Now we expect the same as during a corresponding synchronous
       # invokation
-      assert_equal(ExecutionState::COMPLETED, sp.execution_state)
+      assert_equal(ExecutionState::Completed, sp.execution_state)
       assert_equal(true, sp.exit_zero?)
       ti = sp.task_info
       assert_equal("ping #{@count_flag} 2 127.0.0.1", ti.cmd_str)
