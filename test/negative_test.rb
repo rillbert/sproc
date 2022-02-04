@@ -4,27 +4,33 @@ require_relative "../lib/sproc/core"
 
 module SProc
   # test the sequential process class
-  class TestSequentialProcess < Minitest::Test
+  class NegativeTest < Minitest::Test
     def setup
-      # avoid keeping data in stdout buffer before writing it out
       $stdout.sync = true
-      # since not even a simple cmd like 'ping' has the same flags
-      # under windows/linux (grrr), we need to pass different flags
-      # depending on os
-      @count_flag = case OSInfo.host_os
-                    when OSInfo::WINDOWS then "-n"
-                    when OSInfo::LINUX then "-c"
-                    else raise "Unsupported OS!"
-      end
-      @script_path = Pathname.new("#{__dir__}").join("data/testscript.rb")
+      @script_path = Pathname.new(__dir__.to_s).join("data/error_gen_script.rb")
+    end
+
+    def test_ok
+      s = SProc.new(
+        stdout_callback: lambda { |line| assert_equal("Ok!", line.chomp) }
+      ).exec_sync("ruby", [@script_path, "--success"])
+      assert_equal(ExecutionState::Completed, s.execution_state)
+      assert(s.exit_zero?)
     end
 
     def test_exception
-      s = SProc.new.exec_sync("ruby",[@script_path, "hej", "hopp"])
-      # p s.task_info.inspect
-      # puts "stdout: #{s.task_info.stdout}"
-      # puts "exit code: #{s.task_info.process_status.exitstatus}"
-      assert_equal(ExecutionState::COMPLETED,s.execution_state)
+      s = SProc.new.exec_sync("ruby", [@script_path, "--throw-exception"])
+      assert_equal(ExecutionState::Completed, s.execution_state)
+    end
+
+    def test_exit_on_signal
+      s = SProc.new.exec_async("ruby", [@script_path, "--wait-on-signal"])
+      assert(s.execution_state == ExecutionState::Running)
+
+      # clobber the subprocess
+      s.signal.kill
+      s.wait_on_completion
+      assert(s.execution_state == ExecutionState::Aborted)
     end
   end
 end
